@@ -1,0 +1,10 @@
+.env
+*.db
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+data/*.csv
+!data/*.example.csv
+seed.py
+!seed.example.py

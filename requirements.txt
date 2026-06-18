@@ -1,0 +1,9 @@
+# LLM providers
+openai>=1.0        # used for Groq (free, OpenAI-compatible API)
+anthropic>=0.39    # optional, only if LLM_PROVIDER=anthropic
+
+python-dotenv>=1.0
+requests>=2.31
+beautifulsoup4>=4.12
+flask>=3.0        # local web dashboard (app.py)
+pytest>=8.0       # tests (dev)
