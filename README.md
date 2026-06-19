@@ -2,7 +2,7 @@
 
 > An AI agent that runs my own internship search end to end: it drafts a personalized email per founder, sends it from my Gmail, detects replies, and follows up automatically — human-in-the-loop, with a web dashboard.
 
-**Code:** https://github.com/lilian2004/outreach-agent · **Case study:** https://dub.sh/lilian_miceli
+**Code:** https://github.com/lilian2004/outreach-agent · **Case study:** https://dub.sh/Outreach-Agent
 
 ![Dashboard: pipeline, statuses, reply rate and daily to-dos](https://raw.githubusercontent.com/lilian2004/outreach-agent/main/docs/dashboard.png)
 
