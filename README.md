@@ -1,104 +1,89 @@
-# Founder Outreach Agent
+# Outreach Agent — AI outreach automation
 
-A small, practical CLI that semi-automates cold outreach to startup founders — built to run my own internship search, and kept deliberately ethical and human-in-the-loop.
+> An AI agent that runs my own internship search end to end: it drafts a personalized email per founder, sends it from my Gmail, detects replies, and follows up automatically — human-in-the-loop, with a web dashboard.
 
-It imports a list of target companies, uses an LLM to draft a **personalized** email per founder (based on what their company actually does), lets me review before anything is sent, sends via my own Gmail, and schedules follow-ups — automatically skipping anyone who already replied.
+**Code:** https://github.com/lilian2004/outreach-agent · **Case study:** https://dub.sh/lilian_miceli
 
-> Built by Lilian Miceli while searching for a 6-month Founder's Associate / Growth internship in Barcelona. The project is itself a demonstration of the role: take a fuzzy, manual process and turn it into a working system.
+![Dashboard: pipeline, statuses, reply rate and daily to-dos](https://raw.githubusercontent.com/lilian2004/outreach-agent/main/docs/dashboard.png)
 
-## Why semi-automated (and not a spam bot)
+---
 
-Cold outreach only works when it's specific and human. So the design follows two rules:
+## The problem
 
-- **Email is automated, LinkedIn is not.** Auto-DMing on LinkedIn violates their ToS and gets accounts banned — and founders spot bots instantly. LinkedIn stays manual.
-- **The agent drafts, the human approves.** Nothing is sent without review. There's a `--dry-run` mode (default for testing) and a daily send cap to protect deliverability.
+I needed to reach dozens of startup founders, each with a message that actually reflected what their company does. By hand it's slow, inconsistent, and impossible to follow up on reliably — so I built the whole thing into one pipeline: research a founder, draft a tailored email, review, send, detect replies, follow up. A tool to run (and prove) my own internship search, exactly the kind of work a Founder's Associate does.
 
 ## What it does
 
-1. **Import** target founders from an Apollo CSV export.
-2. **Draft** a tailored email per founder: the LLM reads a one-line company description (and optionally scrapes the homepage) and writes a sharp, specific message.
-3. **Review & send** from your own Gmail (SMTP).
-4. **Follow up** at J+4 and J+10 — but checks your inbox (IMAP) first and skips anyone who replied.
+- Imports a list of target founders
+- Generates a **personalized email per founder** with an LLM, based on what their company actually does
+- Lets me **review before anything is sent** (human-in-the-loop)
+- Sends from my own Gmail and **detects replies**
+- **Follows up automatically** at J+4 / J+10 — skipping anyone who already replied
+- A **web dashboard** tracks the whole pipeline: statuses, stats, reply rate, daily to-dos
 
-## Architecture
+## How it works
 
 ```
-cli.py        # command-line entry point (init / import / list / draft / send / followup)
-config.py     # all settings, loaded from .env
-db.py         # SQLite storage + Apollo CSV import
-enrich.py     # light homepage scraping to feed the LLM
-generate.py   # LLM call -> personalized {subject, body}
-emailer.py    # SMTP send + IMAP reply detection
-data/         # your CSV exports (gitignored, except the example)
+CSV import ──▶ SQLite (founders, emails, statuses)
+                  │
+                  ├─▶ LLM layer (Groq / Claude) ──▶ draft email
+                  │
+        review & approve  (human-in-the-loop)
+                  │
+                  ├─▶ SMTP send (from my Gmail)
+                  ├─▶ IMAP poll ──▶ reply detection ──▶ status update
+                  └─▶ scheduler ──▶ auto follow-up (J+4 / J+10)
+
+Flask dashboard reads SQLite ──▶ pipeline · stats · reply rate · daily to-dos
 ```
-
-## Setup
-
-```bash
-git clone <your-repo>
-cd outreach-agent
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # then fill in your keys
-python cli.py init
-```
-
-Two keys to fill in `.env`:
-
-- **LLM** — get a **free Groq key** at [console.groq.com](https://console.groq.com) (no credit card). The agent defaults to Groq; set `LLM_PROVIDER=anthropic` if you'd rather use Claude.
-- **Email** — for Gmail, create an **App Password** (Google Account → Security → 2-Step Verification → App passwords) and put it in `.env` as `EMAIL_APP_PASSWORD`. Never your normal password.
-
-## Usage
-
-```bash
-# 1. Import an Apollo export
-python cli.py import data/targets.csv
-
-# 2. See your pipeline
-python cli.py list
-
-# 3. Draft a personalized email for prospect #1
-python cli.py draft --id 1
-
-# 4. Preview without sending, then send for real
-python cli.py send --id 1 --dry-run
-python cli.py send --id 1
-
-# 5. Run follow-ups (skips anyone who replied)
-python cli.py followup --stage 1 --dry-run
-python cli.py followup --stage 1
-```
-
-## Web dashboard
-
-Prefer clicking to typing? A local web UI ships with the project:
-
-```bash
-python app.py        # then open http://localhost:5000
-```
-
-From the dashboard you can add a prospect, import a CSV, generate and edit drafts, preview or send emails, change statuses, keep notes, and trigger follow-ups — all without the terminal. A `/stats` page shows your funnel and reply rate so you can measure your outreach like a growth team. It runs entirely on your machine; your keys never leave it.
-
-`python seed.example.py` loads anonymised sample prospects. Copy it to `seed.py` (gitignored) to keep your own real data private.
-
-![Dashboard](docs/dashboard.png)
-
-## Tests
-
-```bash
-pytest
-```
-
-The database layer is covered by unit tests that run against a temporary DB, so they never touch your real data.
-
-## Roadmap
-
-- [x] Local web dashboard + stats funnel
-- [ ] Daily send-cap enforcement
-- [ ] Per-founder hook variants for A/B testing
-- [ ] Scheduled follow-ups (cron)
-- [ ] Optional: pull funding/news signals as hooks
 
 ## Stack
 
-Python · SQLite · Groq / Anthropic LLM · SMTP/IMAP · BeautifulSoup. No heavy framework — readable on purpose.
+`Python` · `Flask` (dashboard) · `SQLite` · `Groq LLM API` · `SMTP/IMAP` · `BeautifulSoup` · `pytest`
+
+## Key decisions
+
+- **Semi-automated, not a spam bot** — the AI drafts, I approve. Dry-run mode + daily send cap protect deliverability.
+- **No LinkedIn scraping** — respects platform terms of service; email channel only.
+- **Secrets out of code** — API keys and credentials live in a gitignored `.env`, never committed.
+- **Provider-agnostic LLM layer** — switch between free Groq and Claude by changing one variable.
+- **Tested** — the data layer is covered by unit tests on a temporary database (`pytest`).
+
+## Result
+
+Running live on my own search: 19 founders contacted so far, 2 replied within 24h (one positive), follow-ups still in flight. Built, tested and shipped solo — it generates, sends, tracks and auto-follows-up on real campaigns end to end. The project itself is the demonstration: take a manual, repetitive process and turn it into a system.
+
+## Getting started
+
+> Adjust file/entrypoint names to match the repo.
+
+```bash
+git clone https://github.com/lilian2004/outreach-agent.git
+cd outreach-agent
+
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+cp .env.example .env               # fill in your keys (never committed)
+python app.py
+```
+
+| Variable | Description |
+|---|---|
+| `GMAIL_ADDRESS` | Sender Gmail address |
+| `GMAIL_APP_PASSWORD` | Gmail app password (not your account password) |
+| `GROQ_API_KEY` / `ANTHROPIC_API_KEY` | LLM API key |
+| `LLM_PROVIDER` | `groq` or `claude` |
+| `DAILY_SEND_CAP` | Max emails per day (deliverability guard) |
+
+## What's next
+
+A/B testing on subject lines with open-rate tracking, LLM-based reply classification (positive / negative / later), and per-segment templates with conversion analytics.
+
+---
+
+### About
+
+Built by **Lilian Miceli** — I take work off a founder's plate and ship it to production, solo.
+[LinkedIn](https://www.linkedin.com/in/lilian-miceli-451ab0235/) · lilianmiceli38@gmail.com
