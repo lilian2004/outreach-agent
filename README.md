@@ -86,4 +86,4 @@ A/B testing on subject lines with open-rate tracking, LLM-based reply classifica
 ### About
 
 Built by **Lilian Miceli** — I take work off a founder's plate and ship it to production, solo.
-[LinkedIn](https://www.linkedin.com/in/lilian-miceli-451ab0235/) · lilianmiceli38@gmail.com
+[LinkedIn](https://www.linkedin.com/in/lilian-miceli-451ab0235/) · lilianmiceli38@gmail.com . [Portfolio](https://pepper-airboat-8ad.notion.site/Lilian-Miceli-Portfolio-37cd71c94d88812db48de0adad3de7b5)
